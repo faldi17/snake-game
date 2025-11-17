@@ -29,6 +29,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  Timer? gameTimer;
+
   // Initial snake body positions (indexes of the grid)
   static List<int> snakePosition = [45, 65, 85, 105, 125];
   // Total number of grid squares (20 x 38)
@@ -38,8 +40,6 @@ class _MyHomePageState extends State<MyHomePage> {
   static final Random randomNumber = Random();
   // Current food position
   int food = 0;
-  // Current movement direction
-  var direction = 'down';
 
   @override
   void initState() {
@@ -58,6 +58,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // Start the game: reset snake, direction, and begin timer
   void startGame() {
+    // Stop the previous timer if it exists
+    gameTimer?.cancel();
     setState(() {
       snakePosition = [45, 65, 85, 105, 125];
       direction = 'down';
@@ -67,7 +69,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     // Game loop (moves snake every 300ms)
     const duration = Duration(milliseconds: 300);
-    Timer.periodic(duration, (Timer timer) {
+    gameTimer = Timer.periodic(duration, (Timer timer) {
       updateSnake();
       if (gameOver()) {
         timer.cancel();
@@ -76,6 +78,8 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  // Current movement direction
+  var direction = 'down';
   // Update snake position based on current direction
   void updateSnake() {
     setState(() {
@@ -134,8 +138,14 @@ class _MyHomePageState extends State<MyHomePage> {
     for (int i = 0; i < snakePosition.length; i++) {
       int count = 0;
       for (int j = 0; j < snakePosition.length; j++) {
-        if (snakePosition[i] == snakePosition[j]) count++;
-        if (count == 2) return true; // A position appears twice -> collision
+        if (snakePosition[i] == snakePosition[j]) {
+          count++;
+        }
+
+        // A position appears twice -> collision
+        if (count == 2) {
+          return true;
+        }
       }
     }
     return false;
@@ -145,25 +155,29 @@ class _MyHomePageState extends State<MyHomePage> {
   void _showGameOverScreen() {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('GAME OVER'),
-        content: Text('Your score: ${snakePosition.length - 5}'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              startGame(); // Restart game
-            },
-            child: const Text('Play Again'),
-          ),
-        ],
-      ),
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('GAME OVER'),
+          content: Text('Your score: ${snakePosition.length - 5}'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Play Again'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                startGame(); // Restart game
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
   // Safely close the app (Android/iOS only; Web cannot exit)
   void _closeApp() {
-    if (kIsWeb) return;
+    if (kIsWeb) {
+      return;
+    }
     try {
       if (Platform.isAndroid) {
         SystemNavigator.pop();
@@ -180,7 +194,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Column(
-        children: [
+        children: <Widget>[
           // Game area
           Expanded(
             child: GestureDetector(
@@ -205,20 +219,22 @@ class _MyHomePageState extends State<MyHomePage> {
               // 20x38 grid for the game board
               child: GridView.builder(
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: 760,
+                itemCount: numberOfSquares,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 20,
                 ),
 
                 // Render snake, food, or empty tile
-                itemBuilder: (context, index) {
+                itemBuilder: (BuildContext context, int index) {
                   if (snakePosition.contains(index)) {
                     // Snake body
-                    return Container(
-                      padding: EdgeInsets.all(2),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(5),
-                        child: Container(color: Colors.white),
+                    return Center(
+                      child: Container(
+                        padding: EdgeInsets.all(2),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(5),
+                          child: Container(color: Colors.white),
+                        ),
                       ),
                     );
                   }
@@ -231,15 +247,17 @@ class _MyHomePageState extends State<MyHomePage> {
                         child: Container(color: Colors.red),
                       ),
                     );
+                    // }
+                  } else {
+                    // Empty tile
+                    return Container(
+                      padding: EdgeInsets.all(2),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(5),
+                        child: Container(color: Colors.grey[900]),
+                      ),
+                    );
                   }
-                  // Empty tile
-                  return Container(
-                    padding: EdgeInsets.all(2),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(5),
-                      child: Container(color: Colors.grey[900]),
-                    ),
-                  );
                 },
               ),
             ),
@@ -247,7 +265,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
           // Play and Exit buttons
           Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: const EdgeInsets.only(
+              bottom: 20.0,
+              left: 20.0,
+              right: 20.0,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: <Widget>[
