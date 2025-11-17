@@ -31,7 +31,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   static final Random randomNumber = Random();
   int food = 0;
-  var direction = 'down';
 
   @override
   void initState() {
@@ -47,6 +46,69 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() => food = newFood);
   }
 
+  void startGame() {
+    setState(() {
+      snakePosition = [45, 65, 85, 105, 125];
+      direction = 'down';
+    });
+    generateNewFood();
+    const duration = Duration(milliseconds: 300);
+    Timer.periodic(duration, (Timer timer) {
+      updateSnake();
+      // if (gameOver()) {
+      //   timer.cancel();
+      //   _showGameOverScreen();
+      // }
+    });
+  }
+
+  var direction = 'down';
+  void updateSnake() {
+    setState(() {
+      switch (direction) {
+        case 'down':
+          if (snakePosition.last > numberOfSquares - 20) {
+            snakePosition.add(snakePosition.last + 20 - numberOfSquares);
+          } else {
+            snakePosition.add(snakePosition.last + 20);
+          }
+          break;
+
+        case 'up':
+          if (snakePosition.last < 20) {
+            snakePosition.add(snakePosition.last - 20 + numberOfSquares);
+          } else {
+            snakePosition.add(snakePosition.last - 20);
+          }
+          break;
+
+        case 'left':
+          if (snakePosition.last % 20 == 0) {
+            snakePosition.add(snakePosition.last - 1 + 20);
+          } else {
+            snakePosition.add(snakePosition.last - 1);
+          }
+          break;
+
+        case 'right':
+          if ((snakePosition.last + 1) % 20 == 0) {
+            snakePosition.add(snakePosition.last + 1 - 20);
+          } else {
+            snakePosition.add(snakePosition.last + 1);
+          }
+          break;
+
+        default:
+      }
+
+      if (snakePosition.last == food) {
+        generateNewFood();
+      } else {
+        snakePosition.removeAt(0);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,8 +117,21 @@ class _MyHomePageState extends State<MyHomePage> {
         children: [
           Expanded(
             child: GestureDetector(
-              onVerticalDragUpdate: (_) {},
-              onHorizontalDragUpdate: (_) {},
+              onVerticalDragUpdate: (details) {
+                if (direction != 'up' && details.delta.dy > 0) {
+                  direction = 'down';
+                } else if (direction != 'down' && details.delta.dy < 0) {
+                  direction = 'up';
+                }
+              },
+              onHorizontalDragUpdate: (details) {
+                if (direction != 'left' && details.delta.dx > 0) {
+                  direction = 'right';
+                } else if (direction != 'right' && details.delta.dx < 0) {
+                  direction = 'left';
+                }
+              },
+
               child: GridView.builder(
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: 760,
@@ -98,8 +173,14 @@ class _MyHomePageState extends State<MyHomePage> {
             padding: const EdgeInsets.all(20.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text('Play', style: TextStyle(color: Colors.white)),
+              children: <Widget>[
+                GestureDetector(
+                  onTap: startGame,
+                  child: const Text(
+                    'P l a y',
+                    style: TextStyle(color: Colors.white, fontSize: 20),
+                  ),
+                ),
                 Text('Exit', style: TextStyle(color: Colors.white)),
               ],
             ),
